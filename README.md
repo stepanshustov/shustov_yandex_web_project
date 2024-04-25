@@ -1,1 +1,0 @@
-# shustov_yandex_web_project
