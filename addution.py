@@ -4,6 +4,7 @@ import requests
 import datetime
 from pprint import pprint
 from config import *
+from datetime import datetime
 
 LANGUAGES_ = {
     'af': 'afrikaans',
@@ -118,6 +119,15 @@ LANGUAGES = dict()
 for el in LANGUAGES_.keys():
     LANGUAGES[LANGUAGES_[el]] = el
 
+WEEKDAY_LIST = ['Понедельник',
+                'Вторник',
+                'Среда',
+                'Четверг',
+                'Пятница',
+                'Суббота',
+                'Воскресенье'
+                ]
+
 
 def detect_lang(text: str):
     translator = Translator()
@@ -143,6 +153,7 @@ class Users:
         self.con = sqlite3.connect(filename)
         self.cur = self.con.cursor()
         self.d = dict()
+        self.keyboard = dict()
         for el in self.cur.execute("select id, language from users").fetchall():
             self.d[el[0]] = el[1]
 
@@ -164,34 +175,90 @@ class Users:
 
 
 code_to_smile = {
-    "Clear": "Ясно \U00002600",
-    "Clouds": "Облачно \U00002601",
-    "Rain": "Дождь \U00002614",
-    "Drizzle": "Дождь \U00002614",
-    "Thunderstorm": "Гроза \U000026A1",
-    "Snow": "Снег \U0001F328",
-    "Mist": "Туман \U0001F32B"
+    "Clear": "\U00002600",
+    "Clouds": "\U00002601",
+    "Rain": "\U00002614",
+    "Drizzle": "\U00002614",
+    "Thunderstorm": "\U000026A1",
+    "Snow": "\U0001F328",
+    "Mist": "\U0001F32B"
 }
 
 
-def get_weather_of_json(js, toponym_address):
-    temp = js['temp_c']
-    windspd_ms = js['windspd_ms']
-    wx_icon = js['wx_icon']
-    winddir_compass = js['winddir_compass']
-    wx_desc = js['wx_desc']
-    st = f"""Погода в {toponym_address}.
-    {wx_desc}
-    Температура: {temp} C°
-    Скорость ветра: {windspd_ms} метров/секунду
-    Напрвление ветра: {winddir_compass}
-    """
-    return st, wx_icon
-
-
-def weather(local: str):
+def current_weather(local: str):
     geocoder_request = f"http://geocode-maps.yandex.ru/1.x/?apikey={maps_token}&" \
                        f"geocode={local.strip()}&format=json"
+
+    response = requests.get(geocoder_request)
+    try:
+        json_response = response.json()
+
+        toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+        toponym_address = toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
+        toponym_coodrinates = toponym["Point"]["pos"]
+        coord = toponym_coodrinates.split()
+        g = requests.get(
+            f'http://api.weatherunlocked.com/api/current/{coord[1]},{coord[0]}?app_id={weather_app_id}&app_key={weather_app_key}&lang=ru')
+        js = g.json()
+        temp = js['temp_c']
+        windspd_ms = js['windspd_ms']
+        wx_icon = js['wx_icon']
+        winddir_compass = js['winddir_compass']
+        wx_desc = js['wx_desc']
+        st = f"""Погода в {toponym_address}.
+        <b>{wx_desc}</b>
+        <i>Температура:</i> <b>{temp} C°</b>
+        <i>Скорость ветра:</i> <b>{windspd_ms} метров/секунду</b>
+        <i>Напрвление ветра:</i> <b>{winddir_compass}</b>
+        """
+        return st, wx_icon
+
+
+    except Exception:
+
+        return "Проверьте правильность написания", ''
+
+
+def forecast_weather(local: str, *days_list):
+    geocoder_request = f"http://geocode-maps.yandex.ru/1.x/?apikey={maps_token}&" \
+                       f"geocode={local.strip()}&format=json"
+
+    response = requests.get(geocoder_request)
+    try:
+        json_response = response.json()
+
+        toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+        toponym_address = toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
+        toponym_coodrinates = toponym["Point"]["pos"]
+        coord = toponym_coodrinates.split()
+        g = requests.get(
+            f'http://api.weatherunlocked.com/api/forecast/{coord[1]},{coord[0]}?app_id={weather_app_id}&app_key={weather_app_key}&lang=ru')
+        js = g.json()
+        days = js['Days']
+        ans = [f"""Погода в {toponym_address}."""]
+        for elem in days:
+            date = elem['date'].replace('/', '.')
+            # if date not in days_list:
+            #     continue
+            week_d = WEEKDAY_LIST[datetime.strptime(date, '%d.%m.%Y').date().weekday()]
+
+            ans.append(f"""<b>{week_d}\t{date}</b>
+
+<i>Температура:</i> <b>{elem['temp_min_c']} - {elem['temp_max_c']} °C</b>
+<i>Ветер до</i> <b>{elem['windspd_max_ms']} метров/секунду</b>
+<i>Рассвет</i> <b>{elem['sunrise_time']}</b>
+<i>Закат</i> <b>{elem['sunset_time']}</b>
+<i>Количество осадков</i> <b>{elem['precip_total_mm']}</b>""")
+
+        return ans
+
+    except Exception:
+        return ["Проверьте правильность написания"]
+
+
+if __name__ == '__main__':
+    geocoder_request = f"http://geocode-maps.yandex.ru/1.x/?apikey={maps_token}&" \
+                       f"geocode={input().strip()}&format=json"
 
     response = requests.get(geocoder_request)
     if response:
@@ -202,18 +269,5 @@ def weather(local: str):
         toponym_coodrinates = toponym["Point"]["pos"]
         coord = toponym_coodrinates.split()
         g = requests.get(
-            f'http://api.weatherunlocked.com/api/current/{coord[0]},{coord[1]}?app_id={weather_app_id}&app_key={weather_app_key}&lang=ru')
-        g2 = requests.get(
-            f'http://api.weatherunlocked.com/api/forecast/{coord[0]},{coord[1]}?app_id={weather_app_id}&app_key={weather_app_key}&lang=ru')
-        pprint(g2.json())
-        return get_weather_of_json(g.json(), toponym_address)
-
-    else:
-        print("Ошибка выполнения запроса:")
-        print(geocoder_request)
-        print("Http статус:", response.status_code, "(", response.reason, ")")
-        return "-1"
-
-
-if __name__ == '__main__':
-    weather(input())
+            f'http://api.weatherunlocked.com/api/forecast/{coord[1]},{coord[0]}?app_id={weather_app_id}&app_key={weather_app_key}&lang=ru')
+        pprint(g.json())
