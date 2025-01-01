@@ -1,3 +1,5 @@
 pip install googletrans==3.1.0a0
 pip install aiogram
 pip install requests
+pip install sqlalchemy
+pip install aioschedule
