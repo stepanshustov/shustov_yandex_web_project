@@ -1,4 +1,3 @@
-
 import sqlite3
 import requests
 import datetime
@@ -16,8 +15,7 @@ WEEKDAY_LIST = ['Понедельник',
                 ]
 
 
-
-def current_weather(local: str):
+def local_coord(local: str):
     geocoder_request = f"http://geocode-maps.yandex.ru/1.x/?apikey={maps_token}&" \
                        f"geocode={local.strip()}&format=json"
 
@@ -29,6 +27,21 @@ def current_weather(local: str):
         toponym_address = toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
         toponym_coodrinates = toponym["Point"]["pos"]
         coord = toponym_coodrinates.split()
+        return coord, toponym_address
+
+    except Exception:
+
+        return None, None
+
+
+def current_weather(local):
+    if type(local) is str:
+        coord, toponym_address = local_coord(local)
+        if coord is None:
+            return "Проверьте правильность написания", ''
+    else:
+        coord, toponym_address = local, f"координатах {local}"
+    try:
         g = requests.get(
             f'http://api.weatherunlocked.com/api/current/{coord[1]},{coord[0]}?app_id={weather_app_id}&app_key={weather_app_key}&lang=ru')
         js = g.json()
@@ -48,21 +61,17 @@ def current_weather(local: str):
 
     except Exception:
 
-        return "Проверьте правильность написания", ''
+        return "Произошла неизвестная ошибка", ''
 
 
-def forecast_weather(local: str):
-    geocoder_request = f"http://geocode-maps.yandex.ru/1.x/?apikey={maps_token}&" \
-                       f"geocode={local.strip()}&format=json"
-
-    response = requests.get(geocoder_request)
+def forecast_weather(local):
+    if type(local) is str:
+        coord, toponym_address = local_coord(local)
+        if coord is None:
+            return "Проверьте правильность написания", ''
+    else:
+        coord, toponym_address = local, f"координатах {local}"
     try:
-        json_response = response.json()
-
-        toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
-        toponym_address = toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
-        toponym_coodrinates = toponym["Point"]["pos"]
-        coord = toponym_coodrinates.split()
         g = requests.get(
             f'http://api.weatherunlocked.com/api/forecast/{coord[1]},{coord[0]}?app_id={weather_app_id}&app_key={weather_app_key}&lang=ru')
         js = g.json()
@@ -75,7 +84,7 @@ def forecast_weather(local: str):
 
             ans.append(f"""<b>{week_d}\t{date}</b>
 
-<i>Температура:</i> <b>{elem['temp_min_c']} - {elem['temp_max_c']} °C</b>
+<i>Температура:</i> <b>{elem['temp_min_c']}  —  {elem['temp_max_c']} °C</b>
 <i>Ветер до</i> <b>{elem['windspd_max_ms']} метров/секунду</b>
 <i>Рассвет</i> <b>{elem['sunrise_time']}</b>
 <i>Закат</i> <b>{elem['sunset_time']}</b>
@@ -83,22 +92,10 @@ def forecast_weather(local: str):
 
         return ans
 
-    except Exception:
-        return ["Проверьте правильность написания"]
+    except Exception as ex:
+        print(ex)
+        return ["Произошла неизвестная ошибка"]
 
 
 if __name__ == '__main__':
-    geocoder_request = f"http://geocode-maps.yandex.ru/1.x/?apikey={maps_token}&" \
-                       f"geocode={input().strip()}&format=json"
-
-    response = requests.get(geocoder_request)
-    if response:
-        json_response = response.json()
-
-        toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
-        toponym_address = toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
-        toponym_coodrinates = toponym["Point"]["pos"]
-        coord = toponym_coodrinates.split()
-        g = requests.get(
-            f'http://api.weatherunlocked.com/api/forecast/{coord[1]},{coord[0]}?app_id={weather_app_id}&app_key={weather_app_key}&lang=ru')
-        pprint(g.json())
+    pass

@@ -129,7 +129,6 @@ def text_translator(text: str, dest='en') -> str:
 
         return translation.text
     except Exception as ex:
-        print(text)
         translator = Translator()
         src = 'ru'
         translation = translator.translate(text=text, src=src, dest=dest)
