@@ -185,7 +185,7 @@ async def main():
             c, d = Weather.local_coord(a)
             if c is None:
                 raise Exception
-            if not (0 <= h <= 12 and 0 <= mn <= 59):
+            if not (0 <= h <= 24 and 0 <= mn <= 59):
                 raise Exception
             tp = 0
             if state_data[m.from_user.id] == 'add_current_weather':
