@@ -1,25 +1,14 @@
-import sqlite3
 import requests
 import datetime
-from pprint import pprint
 from config import *
 from datetime import datetime
-
-WEEKDAY_LIST = ['Понедельник',
-                'Вторник',
-                'Среда',
-                'Четверг',
-                'Пятница',
-                'Суббота',
-                'Воскресенье'
-                ]
-
 
 def local_coord(local: str):
     geocoder_request = f"http://geocode-maps.yandex.ru/1.x/?apikey={maps_token}&" \
                        f"geocode={local.strip()}&format=json"
 
     response = requests.get(geocoder_request)
+    print(response)
     try:
         json_response = response.json()
 
@@ -29,10 +18,17 @@ def local_coord(local: str):
         coord = toponym_coodrinates.split()
         return coord, toponym_address
 
-    except Exception:
-
+    except Exception as ex:
         return None, None
 
+WEEKDAY_LIST = ['Понедельник',
+                'Вторник',
+                'Среда',
+                'Четверг',
+                'Пятница',
+                'Суббота',
+                'Воскресенье'
+                ]
 
 def current_weather(local):
     if type(local) is str:
@@ -68,7 +64,7 @@ def forecast_weather(local):
     if type(local) is str:
         coord, toponym_address = local_coord(local)
         if coord is None:
-            return "Проверьте правильность написания", ''
+            return "Проверьте правильность написания", '-'
     else:
         coord, toponym_address = local, f"координатах {local}"
     try:
@@ -98,4 +94,4 @@ def forecast_weather(local):
 
 
 if __name__ == '__main__':
-    pass
+    print(local_coord("ufa"))

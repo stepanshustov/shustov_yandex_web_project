@@ -190,6 +190,9 @@ async def main():
             tp = 0
             if state_data[m.from_user.id] == 'add_current_weather':
                 tp = 1
+            if mn < 10:
+                mn = f'0{mn}'
+
             users.add_delayed_message(m.from_user.id, a, tp, f'{h}:{mn}')
             await m.answer(text=text_translator("Успешно", dest=users[m.from_user.id].lang))
             await state.clear()
